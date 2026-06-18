@@ -31,7 +31,7 @@ export default function Register() {
             <span className="text-xl font-bold text-white">L</span>
           </div>
           <h1 className="text-2xl font-bold text-surface-900">Create account</h1>
-          <p className="mt-1 text-sm text-surface-500">Start using Liminaria</p>
+          <p className="mt-1 text-sm text-surface-500">Start using Luminaria</p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 rounded-xl border border-surface-200 bg-white p-6 shadow-sm">

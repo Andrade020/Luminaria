@@ -12,7 +12,7 @@ export default function Sidebar() {
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-600">
           <span className="text-xs font-bold text-white">L</span>
         </div>
-        <span className="text-sm font-semibold tracking-tight text-surface-900">Liminaria</span>
+        <span className="text-sm font-semibold tracking-tight text-surface-900">Luminaria</span>
       </div>
 
       <nav className="flex flex-1 flex-col gap-0.5 p-2">

@@ -1,6 +1,6 @@
 import type { GuestSession } from './types'
 
-const GUEST_KEY = 'liminaria_guest'
+const GUEST_KEY = 'luminaria_guest'
 
 export function getGuestSession(projectId: string): GuestSession | null {
   try {
