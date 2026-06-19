@@ -19,7 +19,7 @@ interface FolderNode extends FolderType {
 export default function ProjectView() {
   const { projectId } = useParams<{ projectId: string }>()
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const guest = projectId ? getGuestSession(projectId) : null
   const isAuthenticated = !!user || !!guest
 
@@ -46,9 +46,10 @@ export default function ProjectView() {
 
   useEffect(() => {
     if (!projectId) return
-    if (!isAuthenticated) { navigate(`/join/${projectId}`); return }
+    if (authLoading) return
+    if (!isAuthenticated) { navigate('/login'); return }
     loadProject()
-  }, [projectId, isAuthenticated])
+  }, [projectId, isAuthenticated, authLoading])
 
   async function loadProject() {
     if (!projectId) return
