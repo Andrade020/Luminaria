@@ -28,19 +28,9 @@ export default function Dashboard() {
     const { data } = await supabase
       .from('projects')
       .select('*')
-      .or(`owner_id.eq.${user!.id},id.in.(${await getMemberProjectIds()})`)
       .order('created_at', { ascending: false })
     setProjects((data as Project[]) ?? [])
     setLoading(false)
-  }
-
-  async function getMemberProjectIds(): Promise<string> {
-    const { data } = await supabase
-      .from('project_members')
-      .select('project_id')
-      .eq('user_id', user!.id)
-    if (!data || data.length === 0) return "''"
-    return data.map(r => `'${r.project_id}'`).join(',')
   }
 
   async function createProject() {
