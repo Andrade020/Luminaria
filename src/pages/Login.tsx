@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
+import Logo from '../components/ui/Logo'
 
 export default function Login() {
   const { signIn } = useAuth()
@@ -25,9 +26,7 @@ export default function Login() {
     <div className="flex min-h-screen items-center justify-center bg-surface-50 p-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-600">
-            <span className="text-xl font-bold text-white">L</span>
-          </div>
+          <Logo size={48} className="mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-surface-900">Sign in</h1>
           <p className="mt-1 text-sm text-surface-500">Welcome back to Luminaria</p>
         </div>

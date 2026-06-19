@@ -1,6 +1,7 @@
 import { NavLink, useParams } from 'react-router-dom'
 import { LayoutDashboard, LogOut, Settings, ChevronRight } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
+import Logo from '../ui/Logo'
 
 export default function Sidebar() {
   const { user, signOut } = useAuth()
@@ -9,9 +10,7 @@ export default function Sidebar() {
   return (
     <aside className="flex h-screen w-56 flex-col border-r border-surface-200 bg-surface-50">
       <div className="flex items-center gap-2.5 border-b border-surface-200 px-5 py-4">
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-600">
-          <span className="text-xs font-bold text-white">L</span>
-        </div>
+        <Logo size={28} />
         <span className="text-sm font-semibold tracking-tight text-surface-900">Luminaria</span>
       </div>
 

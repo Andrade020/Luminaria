@@ -6,6 +6,7 @@ import { useAuth } from '../hooks/useAuth'
 import type { Project } from '../lib/types'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
+import Logo from '../components/ui/Logo'
 
 export default function Join() {
   const { hash } = useParams<{ hash: string }>()
@@ -72,9 +73,7 @@ export default function Join() {
     <div className="flex min-h-screen items-center justify-center bg-surface-50 p-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-600">
-            <span className="text-xl font-bold text-white">L</span>
-          </div>
+          <Logo size={48} className="mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-surface-900">You're invited</h1>
           <p className="mt-1 text-surface-500">Join the project workspace</p>
         </div>
