@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Plus, FolderPlus, ChevronRight, ChevronDown, Folder, Film, Copy, Check, ArrowLeft } from 'lucide-react'
+import { Plus, FolderPlus, ChevronRight, ChevronDown, Folder, Film, Copy, Check, ArrowLeft, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { getGuestSession } from '../lib/guest'
@@ -95,6 +95,16 @@ export default function ProjectView() {
     setTree(roots)
     setRootLooms(loomList.filter(l => !l.folder_id))
     setExpanded(new Set(folderList.map(f => f.id)))
+  }
+
+  async function deleteLoom(loomId: string) {
+    await supabase.from('looms').delete().eq('id', loomId)
+    if (projectId) await loadFoldersAndLooms(projectId)
+  }
+
+  function canDeleteLoom(loom: Loom) {
+    if (!user) return false
+    return loom.uploaded_by_id === user.id || project?.owner_id === user.id
   }
 
   async function createFolder() {
@@ -224,7 +234,12 @@ export default function ProjectView() {
 
           <div className="mt-8 flex flex-col gap-8">
             {rootLooms.length > 0 && (
-              <LoomGrid looms={rootLooms} onOpen={id => navigate(`/p/${projectId}/loom/${id}`)} />
+              <LoomGrid
+                looms={rootLooms}
+                onOpen={id => navigate(`/p/${projectId}/loom/${id}`)}
+                onDelete={deleteLoom}
+                canDelete={canDeleteLoom}
+              />
             )}
             {tree.map(node => (
               <FolderSection
@@ -234,6 +249,8 @@ export default function ProjectView() {
                 onAddLoom={folderId => { setLoomFolder(folderId); setShowAddLoom(true) }}
                 onAddSubfolder={folderId => { setNewFolderParent(folderId); setShowNewFolder(true) }}
                 onOpenLoom={loomId => navigate(`/p/${projectId}/loom/${loomId}`)}
+                onDeleteLoom={deleteLoom}
+                canDeleteLoom={canDeleteLoom}
               />
             ))}
           </div>
@@ -345,13 +362,15 @@ function FolderTree({
 }
 
 function FolderSection({
-  node, projectId, onAddLoom, onAddSubfolder, onOpenLoom,
+  node, projectId, onAddLoom, onAddSubfolder, onOpenLoom, onDeleteLoom, canDeleteLoom,
 }: {
   node: FolderNode
   projectId: string
   onAddLoom: (folderId: string) => void
   onAddSubfolder: (folderId: string) => void
   onOpenLoom: (loomId: string) => void
+  onDeleteLoom: (loomId: string) => void
+  canDeleteLoom: (loom: Loom) => boolean
 }) {
   return (
     <div>
@@ -375,50 +394,120 @@ function FolderSection({
 
       {node.looms.length > 0 && (
         <div className="mt-3">
-          <LoomGrid looms={node.looms} onOpen={onOpenLoom} />
+          <LoomGrid looms={node.looms} onOpen={onOpenLoom} onDelete={onDeleteLoom} canDelete={canDeleteLoom} />
         </div>
       )}
 
       {node.children.map(child => (
         <div key={child.id} className="mt-6 ml-4 border-l-2 border-surface-100 pl-4">
-          <FolderSection node={child} projectId={projectId} onAddLoom={onAddLoom} onAddSubfolder={onAddSubfolder} onOpenLoom={onOpenLoom} />
+          <FolderSection node={child} projectId={projectId} onAddLoom={onAddLoom} onAddSubfolder={onAddSubfolder} onOpenLoom={onOpenLoom} onDeleteLoom={onDeleteLoom} canDeleteLoom={canDeleteLoom} />
         </div>
       ))}
     </div>
   )
 }
 
-function LoomGrid({ looms, onOpen }: { looms: Loom[]; onOpen: (id: string) => void }) {
+function LoomGrid({
+  looms, onOpen, onDelete, canDelete,
+}: {
+  looms: Loom[]
+  onOpen: (id: string) => void
+  onDelete: (id: string) => void
+  canDelete: (loom: Loom) => boolean
+}) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {looms.map(loom => (
-        <div
+        <LoomCard
           key={loom.id}
-          onClick={() => onOpen(loom.id)}
-          className="group cursor-pointer rounded-xl border border-surface-200 bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow"
-        >
-          <div className="relative aspect-video bg-surface-100 overflow-hidden">
-            <img
-              src={getLoomThumbnail(loom.loom_embed_id)}
-              alt={loom.title}
-              className="h-full w-full object-cover transition-transform group-hover:scale-105"
-              onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-            />
-            <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90">
-                <Film size={18} className="text-brand-600" />
-              </div>
-            </div>
+          loom={loom}
+          onOpen={() => onOpen(loom.id)}
+          onDelete={() => onDelete(loom.id)}
+          canDelete={canDelete(loom)}
+        />
+      ))}
+    </div>
+  )
+}
+
+function LoomCard({
+  loom, onOpen, onDelete, canDelete,
+}: {
+  loom: Loom
+  onOpen: () => void
+  onDelete: () => void
+  canDelete: boolean
+}) {
+  const [thumbFailed, setThumbFailed] = useState(false)
+  const [confirming, setConfirming] = useState(false)
+
+  function handleDelete(e: React.MouseEvent) {
+    e.stopPropagation()
+    if (confirming) {
+      onDelete()
+    } else {
+      setConfirming(true)
+    }
+  }
+
+  function cancelDelete(e: React.MouseEvent) {
+    e.stopPropagation()
+    setConfirming(false)
+  }
+
+  return (
+    <div className="group relative rounded-xl border border-surface-200 bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+      {/* Thumbnail / fallback */}
+      <div className="relative aspect-video bg-surface-100 overflow-hidden cursor-pointer" onClick={onOpen}>
+        {!thumbFailed ? (
+          <img
+            src={getLoomThumbnail(loom.loom_embed_id)}
+            alt={loom.title}
+            className="h-full w-full object-cover transition-transform group-hover:scale-105"
+            onError={() => setThumbFailed(true)}
+          />
+        ) : (
+          <div className="h-full w-full flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-brand-950 to-brand-800 px-4">
+            <Film size={22} className="text-brand-400 shrink-0" />
+            <p className="text-center text-sm font-semibold text-white line-clamp-3 leading-snug">{loom.title}</p>
           </div>
-          <div className="p-3">
-            <p className="text-sm font-medium text-surface-900 line-clamp-1">{loom.title}</p>
-            {loom.description && <p className="mt-0.5 text-xs text-surface-500 line-clamp-1">{loom.description}</p>}
-            <p className="mt-1.5 text-xs text-surface-400">
-              by {loom.uploaded_by_guest_name ?? 'Unknown'} · {new Date(loom.created_at).toLocaleDateString()}
-            </p>
+        )}
+        <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 shadow">
+            <Film size={18} className="text-brand-600" />
           </div>
         </div>
-      ))}
+      </div>
+
+      {/* Info */}
+      <div className="p-3 cursor-pointer" onClick={onOpen}>
+        <p className="text-sm font-medium text-surface-900 line-clamp-1">{loom.title}</p>
+        {loom.description && <p className="mt-0.5 text-xs text-surface-500 line-clamp-1">{loom.description}</p>}
+        <p className="mt-1.5 text-xs text-surface-400">
+          by {loom.uploaded_by_guest_name ?? 'Unknown'} · {new Date(loom.created_at).toLocaleDateString()}
+        </p>
+      </div>
+
+      {/* Delete button */}
+      {canDelete && (
+        <div className="absolute top-2 right-2" onClick={e => e.stopPropagation()}>
+          {confirming ? (
+            <div className="flex items-center gap-1 rounded-lg bg-white/95 shadow px-2 py-1 border border-red-200">
+              <span className="text-xs text-red-600 font-medium">Delete?</span>
+              <button onClick={handleDelete} className="rounded px-1.5 py-0.5 text-xs font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors">Yes</button>
+              <button onClick={cancelDelete} className="rounded px-1.5 py-0.5 text-xs text-surface-600 hover:bg-surface-100 transition-colors">No</button>
+            </div>
+          ) : (
+            <button
+              onClick={handleDelete}
+              className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/90 shadow text-surface-400 hover:text-red-500 hover:bg-white opacity-0 group-hover:opacity-100 transition-all"
+              title="Delete video"
+            >
+              <Trash2 size={13} />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }
